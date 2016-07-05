@@ -18,4 +18,9 @@ public class HttpResponse {
 		
 	}
 
+	public void forward(String string) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
