@@ -24,53 +24,31 @@ public class HttpResponse {
 		dos = new DataOutputStream(out);
 		headers = new HashMap<String, String>();
 	}
-
-	public void forward(String url) throws IOException {
-		responseResource(getDos(), url);
-	}
-
-	public void sendRedirect(String url) {
-		response302Header(dos, url);
-		responseBody(dos, "".getBytes());
-	}
-
+	
 	public void addHeader(String key, String value) {
 		Map<String, String> tmp = getHeaders();
 		tmp.put(key, value);
 		setHeaders(tmp);
 	}
 
-	private void responseResource(OutputStream out, String url) throws IOException {
-		DataOutputStream dos = new DataOutputStream(out);
+	public void forward(String url) throws IOException {
+		log.debug("forward to {}", url);
 		byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-		response200Header(dos, body.length);
-		responseBody(dos, body);
+		response200Header(body.length);
+		responseBody(body);
 	}
 
-	private void responseCssResource(OutputStream out, String url) throws IOException {
-		DataOutputStream dos = new DataOutputStream(out);
-		byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-		response200CssHeader(dos, body.length);
-		responseBody(dos, body);
+	public void forwardBody(String body) throws IOException {
+		response200Header(body.getBytes().length);
+		responseBody(body.getBytes());
 	}
-
-	private int getContentLength(String line) {
-		String[] headerTokens = line.split(":");
-		return Integer.parseInt(headerTokens[1].trim());
-	}
-
-	private String getDefaultUrl(String[] tokens) {
-		String url = tokens[1];
-		if (url.equals("/")) {
-			url = "/index.html";
-		}
-		return url;
-	}
-
-	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+	
+	private void response200Header(int lengthOfBodyContent) {
 		try {
+			log.debug("content-length = {}", lengthOfBodyContent);
+			
 			dos.writeBytes("HTTP/1.1 200 OK \r\n");
-			dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+			dos.writeBytes("Content-Type: "+ (headers.get("Accept").split(", "))[0] + ";charset=utf-8\r\n");
 			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
 			dos.writeBytes("\r\n");
 		} catch (IOException e) {
@@ -78,39 +56,7 @@ public class HttpResponse {
 		}
 	}
 
-	private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
-		try {
-			dos.writeBytes("HTTP/1.1 200 OK \r\n");
-			dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
-			dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-			dos.writeBytes("\r\n");
-		} catch (IOException e) {
-			log.error(e.getMessage());
-		}
-	}
-
-	private void response302Header(DataOutputStream dos, String url) {
-		try {
-			dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
-			dos.writeBytes("Location: " + url + " \r\n");
-			dos.writeBytes(getHeader());
-			dos.writeBytes("\r\n");
-		} catch (IOException e) {
-			log.error(e.getMessage());
-		}
-	}
-
-	private String getHeader() {
-		StringBuilder sb = new StringBuilder();
-		Iterator<String> iterator = headers.keySet().iterator();
-		while(iterator.hasNext()){
-			String key = iterator.next();
-			sb.append(key + ": " + headers.get(key) + " \r\n");
-		}
-		return sb.toString();
-	}
-
-	private void responseBody(DataOutputStream dos, byte[] body) {
+	private void responseBody(byte[] body) {
 		try {
 			dos.write(body, 0, body.length);
 			dos.writeBytes("\r\n");
@@ -118,6 +64,32 @@ public class HttpResponse {
 		} catch (IOException e) {
 			log.error(e.getMessage());
 		}
+	}
+	
+	public void sendRedirect(String url) {
+		response302Header(url);
+		responseBody("".getBytes());
+	}
+
+	private void response302Header(String url) {
+		try {
+			dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
+			dos.writeBytes("Location: " + url + " \r\n");
+			dos.writeBytes(processHeader());
+			dos.writeBytes("\r\n");
+		} catch (IOException e) {
+			log.error(e.getMessage());
+		}
+	}
+
+	private String processHeader() {
+		StringBuilder sb = new StringBuilder();
+		Iterator<String> iterator = headers.keySet().iterator();
+		while(iterator.hasNext()){
+			String key = iterator.next();
+			sb.append(key + ": " + headers.get(key) + " \r\n");
+		}
+		return sb.toString();
 	}
 
 	public DataOutputStream getDos() {

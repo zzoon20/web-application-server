@@ -22,32 +22,13 @@ public class HttpRequest {
 	private Map<String, String> params;
 	private Map<String, String> headers;
 
-	public void setMethod(String method) {
-		this.method = method;
-	}
-
-	public void setPath(String path) {
-		this.path = path;
-	}
-
-	public void setParams(Map<String, String> params) {
-		this.params = params;
-	}
-
-	public void setHeaders(Map<String, String> headers) {
-		this.headers = headers;
-	}
-	
-	public Map<String, String> getParams() {
-		if(params == null){
-			return new HashMap<String, String>();
-		}
-		return params;
-	}
-
 	public HttpRequest(InputStream in) throws IOException {
+		params = new HashMap<String, String>();
+		headers = new HashMap<String, String>();
+
 		BufferedReader br = new BufferedReader(new InputStreamReader(in));
 		String requestLine = br.readLine();
+		log.debug("requestLine: {}", requestLine);
 		if (requestLine == null) {
 			return;
 		}
@@ -66,19 +47,24 @@ public class HttpRequest {
 
 		Map<String, String> tmp = new HashMap<String, String>();
 		String line = br.readLine();
-		while (line != null && !line.isEmpty()) {
-			log.debug("header: {}", line);
+		while (true) {
 			Pair pair = HttpRequestUtils.parseHeader(line);
-			if (pair != null) {
-				tmp.put(pair.getKey(), pair.getValue());
-			}
+			if (pair == null)
+				break;
+			tmp.put(pair.getKey(), pair.getValue());
+			log.debug("set header: {}", line);
 			line = br.readLine();
 		}
 		setHeaders(tmp);
+		log.debug("set setHeaders done");
+		
+		if(getMethod().equals("GET")) {
+			return;
+		}
 		
 		line = br.readLine();
-		if(getMethod().equals("POST") && line!=null){
-			log.debug("header: {}", line);
+		if (line != null) {
+			log.debug("set Param: {}", line);
 			setParams(HttpRequestUtils.parseQueryString(line));
 		}
 
@@ -100,4 +86,27 @@ public class HttpRequest {
 		return params.get(key);
 	}
 
+	public void setMethod(String method) {
+		this.method = method;
+	}
+
+	public void setPath(String path) {
+		this.path = path;
+	}
+	
+	public Map<String, String> getParams() {
+		return params;
+	}
+
+	public void setParams(Map<String, String> params) {
+		this.params = params;
+	}
+
+	public void setHeaders(Map<String, String> headers) {
+		this.headers = headers;
+	}
+	
+	public Map<String, String> getHeaders() {
+		return headers;
+	}
 }
