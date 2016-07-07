@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import util.HttpRequestUtils;
 import util.HttpRequestUtils.Pair;
+import util.IOUtils;
 import webserver.RequestHandler;
 
 public class HttpRequest {
@@ -62,7 +63,8 @@ public class HttpRequest {
 			return;
 		}
 		
-		line = br.readLine();
+		line = IOUtils.readData(br, Integer.parseInt(getHeader("Content-Length")));
+		log.debug("post line : " + line);
 		if (line != null) {
 			log.debug("set Param: {}", line);
 			setParams(HttpRequestUtils.parseQueryString(line));
